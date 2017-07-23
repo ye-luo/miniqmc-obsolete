@@ -35,6 +35,7 @@ public:
   typedef T  Type_t;
   typedef T* iterator;
   typedef const T* const_iterator;
+  typedef typename Alloc::size_type size_type;
   typedef typename Alloc::pointer pointer;
   typedef typename Alloc::const_pointer const_pointer;
   typedef Vector<T,Alloc> This_t;
@@ -72,11 +73,9 @@ public:
   template<typename T1, typename C1>
   inline Vector& operator=(const Vector<T1,C1>& rhs)
   {
-    if(std::is_convertible<T1,T>::value)
-    {
-      if(nLocal!=rhs.nLocal) resize(rhs.nLocal);
-      std::copy_n(rhs.data(),nLocal,X);
-    }
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Vector!");
+    if(nLocal!=rhs.nLocal) resize(rhs.nLocal);
+    std::copy_n(rhs.data(),nLocal,X);
     return *this;
   }
 
@@ -84,7 +83,7 @@ public:
   template<class RHS>
   inline Vector& operator=(const RHS& rhs)
   {
-    assign(*this,rhs);
+    std::fill_n(X,nLocal,rhs);
     return *this;
   }
 
@@ -117,26 +116,29 @@ public:
     return;
   }
 
+  ///clear
+  inline void clear() {nLocal=0;}
+
   // Get and Set Operations
   inline Type_t& operator[](size_t i)
   {
     return X[i];
   }
 
-  inline Type_t operator[](size_t i) const
+  inline const Type_t& operator[](size_t i) const
   {
     return X[i];
   }
 
-  inline Type_t& operator()(size_t i)
-  {
-    return X[i];
-  }
+  //inline Type_t& operator()(size_t i)
+  //{
+  //  return X[i];
+  //}
 
-  inline Type_t operator()( size_t i) const
-  {
-    return X[i];
-  }
+  //inline Type_t operator()( size_t i) const
+  //{
+  //  return X[i];
+  //}
 
   inline iterator begin() { return X;}
   inline const_iterator begin() const { return X;}

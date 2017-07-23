@@ -26,7 +26,7 @@
 #define QMCPLUSPLUS_INNER_PRODUCT_HPP
 
 #include <Numerics/OhmmsBlas.h>
-#include <OhmmsPETE/TinyVector.h>
+#include <OhmmsPETE/Tensor.h>
 
 namespace qmcplusplus {
 

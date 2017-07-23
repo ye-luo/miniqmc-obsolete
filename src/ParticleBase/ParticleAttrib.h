@@ -43,12 +43,13 @@ public:
   inline ParticleAttrib& operator=(const ParticleAttrib& rhs)=default;
 
   /** assignment operator to enable PETE */
-  template<class RHS>
-  inline ParticleAttrib& operator=(const RHS& rhs)
-  {
-    assign(*this,rhs); 
-    return *this;
-  }
+  //template<class RHS>
+  //inline ParticleAttrib& operator=(const RHS& rhs)
+  //{
+  //  __my_base::operator=(rhs);
+  //  return *this;
+  //}
+  using __my_base::operator=;
 
   //@{set/set the unit
   inline void setUnit(int i)

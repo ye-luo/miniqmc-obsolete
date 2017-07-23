@@ -35,12 +35,8 @@
  ***************************************************************************/
 
 
-
-
-// include files
 #include <iomanip>
-#include "PETE/PETE.h"
-#include "OhmmsPETE/OhmmsTinyMeta.h"
+#include <algorithm>
 
 namespace qmcplusplus
 {
@@ -50,37 +46,29 @@ template<class T, unsigned D>
 struct TinyVector
 {
   typedef T Type_t;
+  typedef TinyVector<T,D> This_t;
   enum { Size = D };
   T X[Size];
 
   // Default Constructor initializes to zero.
   inline TinyVector()
   {
-    OTAssign<TinyVector<T,D>, T, OpAssign>::apply(*this,T(0), OpAssign());
-  }
-
-  // A noninitializing ctor.
-  class DontInitialize {};
-  inline TinyVector(DontInitialize) {}
-
-  // Copy Constructor
-  inline TinyVector(const TinyVector& rhs)
-  {
-    OTAssign< TinyVector<T,D> , TinyVector<T,D> ,OpAssign>::apply(*this,rhs, OpAssign());
+    *this=T(0);
   }
 
   // Templated TinyVector constructor.
   template<class T1, unsigned D1>
   inline TinyVector(const TinyVector<T1,D1> &rhs)
   {
-    for (unsigned d=0; d<D; ++d)
-      X[d] = (d < D1) ? rhs[d] : T1(0);
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    *this=rhs;
   }
 
   // Constructor from a single T
   inline TinyVector(const T& x00)
   {
-    OTAssign<TinyVector<T,D>,T,OpAssign>::apply(*this,x00,OpAssign());
+    *this=x00;
   }
 
   // Constructors for fixed dimension
@@ -102,7 +90,6 @@ struct TinyVector
     X[2] = x02;
     X[3] = x03;
   }
-
   inline TinyVector(const T& x00, const T& x01, const T& x02, const T& x03,
              const T& x10, const T& x11, const T& x12, const T& x13,
              const T& x20, const T& x21, const T& x22, const T& x23,
@@ -128,7 +115,7 @@ struct TinyVector
 
   inline TinyVector(const T* restrict base, int offset)
   {
-#pragma unroll(D)
+    #pragma unroll(D)
     for(int i=0; i<D; ++i)
       X[i]=base[i*offset];
   }
@@ -146,39 +133,12 @@ struct TinyVector
     return D*sizeof(T);
   }
 
-  inline TinyVector& operator=(const TinyVector& rhs)
-  {
-    OTAssign<TinyVector<T,D>,TinyVector<T,D>,OpAssign>::apply(*this,rhs,OpAssign());
-    return *this;
-  }
-
-  template<class T1>
-  inline TinyVector<T,D>& operator=(const TinyVector<T1,D> &rhs)
-  {
-    OTAssign<TinyVector<T,D>,TinyVector<T1,D>,OpAssign>::apply(*this,rhs,OpAssign());
-    return *this;
-  }
-
-  inline TinyVector<T,D>& operator=(const T& rhs)
-  {
-    OTAssign<TinyVector<T,D>,T,OpAssign>::apply(*this, rhs, OpAssign());
-    return *this;
-  }
-
   // Get and Set Operations
   inline Type_t& operator[](unsigned int i)
   {
     return X[i];
   }
-  inline Type_t operator[](unsigned int i) const
-  {
-    return X[i];
-  }
-  inline Type_t& operator()(unsigned int i)
-  {
-    return X[i];
-  }
-  inline Type_t operator()( unsigned int i) const
+  inline const Type_t& operator[](unsigned int i) const
   {
     return X[i];
   }
@@ -208,116 +168,174 @@ struct TinyVector
     return  X+D;
   }
 
-  // Comparison operators.
-  //bool operator==(const TinyVector<T,D>& that) const {
-  //  return MetaCompareArrays<T,T,D>::apply(X,that.X);
-  //}
-  //bool operator!=(const TinyVector<T,D>& that) const {
-  //  return !(*this == that);
-  //}
-
-  //----------------------------------------------------------------------
-  // parallel communication
-
-  //Message& putMessage(Message& m) const {
-  //  m.setCopy(true);
-  //  ::putMessage(m, X, X + D);
-  //    return m;
-  //}
-
-  //Message& getMessage(Message& m) {
-  //  ::getMessage(m, X, X + D);
-  //  return m;
-  //}
-
-  template<class Msg> inline Msg& putMessage(Msg& m)
+  // operator = TinyVector
+  template<class T1, unsigned D1>
+  inline This_t& operator=(const TinyVector<T1,D1>& rhs)
   {
-    m.Pack(X,Size);
-    return m;
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    std::copy_n(rhs.begin(),D,X);
+    return *this;
   }
 
-  template<class Msg> inline Msg& getMessage(Msg& m)
+  // operator = scalar
+  inline This_t& operator=(const T& rhs)
   {
-    m.Unpack(X,Size);
-    return m;
+    std::fill_n(X,D,rhs);
+    return *this;
+  }
+
+  // operator += TinyVector
+  template<class T1, unsigned D1>
+  inline This_t& operator+=(const TinyVector<T1,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      X[i]+=rhs[i];
+    return *this;
+  }
+
+  // operator -= TinyVector
+  template<class T1, unsigned D1>
+  inline This_t& operator-=(const TinyVector<T1,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      X[i]-=rhs[i];
+    return *this;
+  }
+
+  // operator *= scalar
+  template<class T1>
+  inline This_t& operator*=(const T1& rhs)
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      X[i]*=rhs;
+    return *this;
+  }
+
+  // operator /= scalar
+  template<class T1>
+  inline This_t& operator/=(const T1& rhs)
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      X[i]/=rhs;
+    return *this;
+  }
+
+  // operator + TinyVector
+  template<class T1, unsigned D1>
+  inline This_t operator+(const TinyVector<T1,D1>& rhs) const
+  {
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    This_t tmp;
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      tmp[i]=X[i]+rhs[i];
+    return tmp;
+  }
+
+  // operator - TinyVector
+  template<class T1, unsigned D1>
+  inline This_t operator-(const TinyVector<T1,D1>& rhs) const
+  {
+    static_assert(D1==D, "Dimession mismatching in TinyVector");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    This_t tmp;
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      tmp[i]=X[i]-rhs[i];
+    return tmp;
+  }
+
+  // operator * scalar
+  template<class T1>
+  inline This_t operator*(const T1& rhs) const
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    This_t tmp;
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      tmp[i]=X[i]*rhs;
+    return tmp;
+  }
+
+  // operator / scalar
+  template<class T1>
+  inline This_t operator/(const T1& rhs) const
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
+    This_t tmp;
+    #pragma unroll(D)
+    for(int i=0; i<D; ++i)
+      tmp[i]=X[i]/rhs;
+    return tmp;
   }
 
 };
 
-//OHMMS_TINYVECTOR_ACCUM_OPERATORS(operator+=,OpAddAssign)
-//OHMMS_TINYVECTOR_ACCUM_OPERATORS(operator-=,OpSubtractAssign)
-//OHMMS_TINYVECTOR_ACCUM_OPERATORS(operator*=,OpMultiplyAssign)
-//OHMMS_TINYVECTOR_ACCUM_OPERATORS(operator/=,OpDivideAssign)
-// Adding binary operators using macro defined in OhmmsTinyMeta.h
-OHMMS_META_ACCUM_OPERATORS(TinyVector,operator+=,OpAddAssign)
-OHMMS_META_ACCUM_OPERATORS(TinyVector,operator-=,OpSubtractAssign)
-OHMMS_META_ACCUM_OPERATORS(TinyVector,operator*=,OpMultiplyAssign)
-OHMMS_META_ACCUM_OPERATORS(TinyVector,operator/=,OpDivideAssign)
-
-OHMMS_META_BINARY_OPERATORS(TinyVector,operator+,OpAdd)
-OHMMS_META_BINARY_OPERATORS(TinyVector,operator-,OpSubtract)
-OHMMS_META_BINARY_OPERATORS(TinyVector,operator*,OpMultiply)
-OHMMS_META_BINARY_OPERATORS(TinyVector,operator/,OpDivide)
+// scalar * TinyVector
+template<class T, class T1, unsigned D>
+inline TinyVector<T,D> operator*(const T& lhs, const TinyVector<T1,D>& rhs)
+{
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in TinyVector!");
+  TinyVector<T,D> tmp;
+  #pragma unroll(D)
+  for(int i=0; i<D; ++i)
+    tmp[i]=lhs*rhs[i];
+  return tmp;
+}
 
 //----------------------------------------------------------------------
 // dot product
 //----------------------------------------------------------------------
-template < class T1, class T2, unsigned D >
-inline typename BinaryReturn<T1,T2,OpMultiply>::Type_t
-dot(const TinyVector<T1,D> &lhs, const TinyVector<T2,D> &rhs)
+template <class T, class T1, unsigned D>
+inline T dot(const TinyVector<T,D>& lhs, const TinyVector<T1,D>& rhs)
 {
-  return OTDot< TinyVector<T1,D> , TinyVector<T2,D> > :: apply(lhs,rhs);
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in TinyVector!");
+  T tmp=0;
+  #pragma unroll(D)
+  for(int i=0; i<D; ++i)
+    tmp+=lhs[i]*rhs[i];
+  return tmp;
 }
 
 //----------------------------------------------------------------------
 // cross product
 //----------------------------------------------------------------------
 
-template < class T1, class T2, unsigned D >
-inline TinyVector<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>
-cross(const TinyVector<T1,D> &lhs, const TinyVector<T2,D> &rhs)
+template<class T, class T1>
+inline TinyVector<T,3> cross(const TinyVector<T,3>& a, const TinyVector<T1,3>& b)
 {
-  return OTCross< TinyVector<T1,D> , TinyVector<T2,D> > :: apply(lhs,rhs);
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in TinyVector!");
+  TinyVector<T,3> cross;
+  cross[0] = a[1]*b[2] - a[2]*b[1];
+  cross[1] = a[2]*b[0] - a[0]*b[2];
+  cross[2] = a[0]*b[1] - a[1]*b[0];
+  return cross;
 }
 
 //----------------------------------------------------------------------
-// cross product
+// outerProduct product
 //----------------------------------------------------------------------
 
+/* TODO
 template < class T1, class T2, unsigned D >
 inline Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>
 outerProduct(const TinyVector<T1,D> &lhs, const TinyVector<T2,D> &rhs)
 {
   return OuterProduct< TinyVector<T1,D> , TinyVector<T2,D> > :: apply(lhs,rhs);
 }
-
-template < class T1, unsigned D >
-inline TinyVector<Tensor<T1,D>,D>
-outerdot(const TinyVector<T1,D> &lhs, const TinyVector<T1,D> &mhs, const TinyVector<T1,D> &rhs)
-{
-  TinyVector<Tensor<T1,D>,D> ret;
-  Tensor<T1,D> tmp=OuterProduct< TinyVector<T1,D> , TinyVector<T1,D> > :: apply(lhs,mhs);
-  for(unsigned i(0); i<D; i++)
-    ret[i]=rhs[i]*tmp;
-  return ret;
-}
-
-template < class T1, class T2, class T3, unsigned D >
-inline TinyVector<Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>,D>
-symouterdot(const TinyVector<T1,D> &lhs, const TinyVector<T2,D> &mhs, const TinyVector<T3,D> &rhs)
-{
-  TinyVector<Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>,D> ret;
-  Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D> tmp=OuterProduct< TinyVector<T1,D> , TinyVector<T2,D> > :: apply(lhs,mhs);
-  for(unsigned i(0); i<D; i++)
-    ret[i]=rhs[i]*tmp;
-  tmp=OuterProduct< TinyVector<T2,D> , TinyVector<T3,D> > :: apply(mhs,rhs);
-  for(unsigned i(0); i<D; i++)
-    ret[i]+=lhs[i]*tmp;
-  tmp=OuterProduct< TinyVector<T1,D> , TinyVector<T3,D> > :: apply(lhs,rhs);
-  for(unsigned i(0); i<D; i++)
-    ret[i]+=mhs[i]*tmp;
-  return ret;
-}
+*/
 
 //----------------------------------------------------------------------
 // I/O

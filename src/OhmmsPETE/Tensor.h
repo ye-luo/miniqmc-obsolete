@@ -16,6 +16,7 @@
 #ifndef	OHMMS_TENSOR_H
 #define	OHMMS_TENSOR_H
 
+#include <algorithm>
 #include "PETE/PETE.h"
 #include "OhmmsPETE/OhmmsTinyMeta.h"
 /***************************************************************************
@@ -125,9 +126,10 @@ public:
     OTAssign< Tensor<T,D> , Tensor<T1,D> ,OpAssign> :: apply(*this,rhs,OpAssign());
     return *this;
   }
+
   inline Tensor<T,D>& operator= (const T& rhs)
   {
-    OTAssign< Tensor<T,D> , T ,OpAssign> :: apply(*this,rhs, OpAssign());
+    std::fill_n(X,Size,rhs);
     return *this;
   }
 
