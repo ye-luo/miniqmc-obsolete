@@ -30,7 +30,6 @@ template<class T, unsigned D> class TinyVector;
 template<class T, unsigned D> class Tensor;
 template<class T, unsigned D> class SymTensor;
 template<class T, unsigned D> class AntiSymTensor;
-template<class T, unsigned D1, unsigned D2> class TinyMatrix;
 
 // generic OTAssign and OTBinary functors (OT = OhmmsTiny)
 template<class T1, class T2, class OP> struct OTAssign {};
@@ -47,10 +46,8 @@ template<class T1, class T2> struct OTDot {};
 // TinyMatrixOps.h        assignment/unary and binary operators  for TinyMatrix
 ////////////////////////////////////////////////////////////////////////////////
 #define PAssert
-#include "OhmmsPETE/TinyVectorOps.h"
 #include "OhmmsPETE/TensorOps.h"
 #include "OhmmsPETE/TinyVectorTensorOps.h"
-#include "OhmmsPETE/TinyMatrixOps.h"
 
 // macros to generate a set of binary and unary combintions for each operator
 // e.g., OHMMS_META_BINARY_OPERATORS(TinyVector,operator+,OpAdd)
