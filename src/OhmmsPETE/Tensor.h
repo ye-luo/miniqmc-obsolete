@@ -17,6 +17,7 @@
 #define	OHMMS_TENSOR_H
 
 #include <algorithm>
+#include <iostream>
 #include "PETE/PETE.h"
 #include "OhmmsPETE/OhmmsTinyMeta.h"
 /***************************************************************************
@@ -41,10 +42,6 @@
 
 namespace qmcplusplus
 {
-// forward declarations
-template <class T, unsigned D> class SymTensor;
-template <class T, unsigned D> class AntiSymTensor;
-
 
 /** Tensor<T,D>  class for D by D tensor
  *
@@ -57,40 +54,40 @@ class Tensor
 public:
 
   typedef T Type_t;
+  typedef Tensor<T,D> This_t;
   enum { ElemDim = 2 };
   enum { Size = D*D };
 
   // Default Constructor
-  Tensor()
+  inline Tensor()
   {
-    OTAssign<Tensor<T,D>,T,OpAssign>::apply(*this,T(0),OpAssign());
+    *this=T(0);
   }
 
-  // A noninitializing ctor.
-  class DontInitialize {};
-  Tensor(DontInitialize) {}
-
-  // Copy Constructor
-  Tensor(const Tensor<T,D> &rhs)
+  // Templated Tensor constructor.
+  template<class T1, unsigned D1>
+  inline Tensor(const Tensor<T1,D1> &rhs)
   {
-    OTAssign< Tensor<T,D> , Tensor<T,D> ,OpAssign >::apply(*this,rhs,OpAssign());
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    std::copy_n(rhs.begin(),Size,X);
   }
 
   // constructor from a single T
-  Tensor(const T& x00)
+  inline Tensor(const T& x00)
   {
-    OTAssign< Tensor<T,D> , T ,OpAssign >::apply(*this,x00,OpAssign());
+    *this=x00;
   }
 
   // constructors for fixed dimension
-  Tensor(const T& x00, const T& x10, const T& x01, const T& x11)
+  inline Tensor(const T& x00, const T& x10, const T& x01, const T& x11)
   {
     X[0] = x00;
     X[1] = x10;
     X[2] = x01;
     X[3] = x11;
   }
-  Tensor(const T& x00, const T& x10, const T& x20, const T& x01, const T& x11,
+  inline Tensor(const T& x00, const T& x10, const T& x20, const T& x01, const T& x11,
          const T& x21, const T& x02, const T& x12, const T& x22)
   {
     X[0] = x00;
@@ -104,94 +101,8 @@ public:
     X[8] = x22;
   }
 
-  //constructor from SymTensor
-  Tensor(const SymTensor<T,D>&);
-
-  // constructor from AntiSymTensor
-  Tensor(const AntiSymTensor<T,D>&);
-
   // destructor
   ~Tensor() { };
-
-  // assignment operators
-  inline Tensor<T,D>& operator= (const Tensor<T,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T,D> ,OpAssign> :: apply(*this,rhs,OpAssign());
-    return *this;
-  }
-
-  template<class T1>
-  inline Tensor<T,D>& operator= (const Tensor<T1,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T1,D> ,OpAssign> :: apply(*this,rhs,OpAssign());
-    return *this;
-  }
-
-  inline Tensor<T,D>& operator= (const T& rhs)
-  {
-    std::fill_n(X,Size,rhs);
-    return *this;
-  }
-
-  // accumulation operators
-  template<class T1>
-  inline Tensor<T,D>& operator+=(const Tensor<T1,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T1,D> , OpAddAssign > ::
-    apply(*this,rhs,OpAddAssign());
-    return *this;
-  }
-  inline Tensor<T,D>& operator+=(const T& rhs)
-  {
-    OTAssign< Tensor<T,D> , T , OpAddAssign > ::
-    apply(*this,rhs, OpAddAssign());
-    return *this;
-  }
-
-  template<class T1>
-  inline Tensor<T,D>& operator-=(const Tensor<T1,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T1,D> , OpSubtractAssign > ::
-    apply(*this,rhs,OpSubtractAssign());
-    return *this;
-  }
-
-  inline Tensor<T,D>& operator-=(const T& rhs)
-  {
-    OTAssign< Tensor<T,D> , T , OpSubtractAssign > ::
-    apply(*this,rhs,OpSubtractAssign());
-    return *this;
-  }
-
-  template<class T1>
-  inline Tensor<T,D>& operator*=(const Tensor<T1,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T1,D> , OpMultiplyAssign > ::
-    apply(*this,rhs,OpMultiplyAssign());
-    return *this;
-  }
-
-  inline Tensor<T,D>& operator*=(const T& rhs)
-  {
-    OTAssign< Tensor<T,D> , T , OpMultiplyAssign > ::
-    apply(*this,rhs, OpMultiplyAssign());
-    return *this;
-  }
-
-  template<class T1>
-  inline Tensor<T,D>& operator/=(const Tensor<T1,D> &rhs)
-  {
-    OTAssign< Tensor<T,D> , Tensor<T1,D> , OpDivideAssign > ::
-    apply(*this,rhs, OpDivideAssign());
-    return *this;
-  }
-
-  inline Tensor<T,D>& operator/=(const T& rhs)
-  {
-    OTAssign< Tensor<T,D> , T , OpDivideAssign > ::
-    apply(*this,rhs, OpDivideAssign());
-    return *this;
-  }
 
   // Methods
 
@@ -229,7 +140,7 @@ public:
   /** return the i-th value
    * @param i index [0,D*D)
    */
-  inline Type_t operator[]( unsigned int i ) const
+  inline const Type_t& operator[]( unsigned int i ) const
   {
     return X[i];
   }
@@ -241,7 +152,7 @@ public:
     return X[i];
   }
 
-  inline Type_t operator()(unsigned int i) const
+  inline const Type_t& operator()(unsigned int i) const
   {
     return X[i];
   }
@@ -306,41 +217,130 @@ public:
     return  X+Size;
   }
 
-//  Removed operator using std::pair
-//    Type_t operator()(const std::pair<int,int> i) const {
-//      PAssert ( (i.first>=0) && (i.second>=0) && (i.first<D) && (i.second<D) );
-//      return (*this)(i.first,i.second);
-//    }
+  // assignment operators
+  // operator = Tensor
+  template<class T1, unsigned D1>
+  inline This_t& operator=(const Tensor<T,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    std::copy_n(rhs.begin(),Size,X);
+    return *this;
+  }
 
-//    Type_t& operator()(const std::pair<int,int> i) {
-//      PAssert ( (i.first>=0) && (i.second>=0) && (i.first<D) && (i.second<D) );
-//      return (*this)(i.first,i.second);
-//    }
+  // operator = scalar
+  inline This_t& operator=(const T& rhs)
+  {
+    std::fill_n(X,Size,rhs);
+    return *this;
+  }
 
+  // accumulation operators
+  // operator += Tensor
+  template<class T1, unsigned D1>
+  inline This_t& operator+=(const Tensor<T1,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    for(int i=0; i<Size; ++i)
+      X[i]+=rhs[i];
+    return *this;
+  }
 
-//----------------------------------------------------------------------
-// Comparison operators.
-//    bool operator==(const Tensor<T,D>& that) const {
-//      return MetaCompareArrays<T,T,D*D>::apply(X,that.X);
-//    }
-//    bool operator!=(const Tensor<T,D>& that) const {
-//      return !(*this == that);
-//    }
+  // operator -= Tensor
+  template<class T1, unsigned D1>
+  inline This_t& operator-=(const Tensor<T1,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    for(int i=0; i<Size; ++i)
+      X[i]-=rhs[i];
+    return *this;
+  }
 
-  //----------------------------------------------------------------------
-  // parallel communication
-//    Message& putMessage(Message& m) const {
-//      m.setCopy(true);
-//      const T *p = X;
-//      ::putMessage(m, p, p + D*D);
-//      return m;
-//    }
+  // operator *= Tensor
+  template<class T1, unsigned D1>
+  inline This_t& operator*=(const Tensor<T1,D1>& rhs)
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    for(int i=0; i<D; ++i)
+      for(int j=0; j<D; ++j)
+      {
+        Type_t sum = (*this)(i,0) * rhs(0,j);
+        #pragma unroll
+        for (int k=1; k<D; ++k)
+          sum += (*this)(i,k) * rhs(k,j);
+        (*this)(i,j) = sum;
+      }
+    return *this;
+  }
 
-//    Message& getMessage(Message& m) {
-//      T *p = X;
-//      ::getMessage(m, p, p + D*D);
-//      return m;
-//    }
+  // operator *= scalar
+  template<class T1>
+  inline This_t& operator*=(const T1& rhs)
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    for(int i=0; i<Size; ++i)
+      X[i]*=rhs;
+    return *this;
+  }
+
+  // operator /= scalar
+  template<class T1>
+  inline This_t& operator/=(const T1& rhs)
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    for(int i=0; i<Size; ++i)
+      X[i]/=rhs;
+    return *this;
+  }
+
+  // operator + Tensor
+  template<class T1, unsigned D1>
+  inline This_t operator+(const Tensor<T1,D1>& rhs) const
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    This_t tmp;
+    for(int i=0; i<Size; ++i)
+      tmp[i]=X[i]+rhs[i];
+    return tmp;
+  }
+
+  // operator - Tensor
+  template<class T1, unsigned D1>
+  inline This_t operator-(const Tensor<T1,D1>& rhs) const
+  {
+    static_assert(D1==D, "Dimession mismatching in Tensor");
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    This_t tmp;
+    for(int i=0; i<Size; ++i)
+      tmp[i]=X[i]-rhs[i];
+    return tmp;
+  }
+
+  // operator * scalar
+  template<class T1>
+  inline This_t operator*(const T1& rhs) const
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    This_t tmp;
+    for(int i=0; i<Size; ++i)
+      tmp[i]=X[i]*rhs;
+    return tmp;
+  }
+
+  // operator / scalar
+  template<class T1>
+  inline This_t operator/(const T1& rhs) const
+  {
+    static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+    This_t tmp;
+    for(int i=0; i<Size; ++i)
+      tmp[i]=X[i]/rhs;
+    return tmp;
+  }
 
 private:
 
@@ -349,6 +349,35 @@ private:
 
 };
 
+// Tensor * Tensor
+template<class T, class T1, unsigned D>
+inline Tensor<typename Promote<T,T1>::Type_t,D> operator*(const Tensor<T,D>& lhs, const Tensor<T1,D>& rhs)
+{
+  static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
+  using Type_t=typename Promote<T,T1>::Type_t;
+  Tensor<Type_t,D> tmp;
+  for(int i=0; i<D; ++i)
+    for(int j=0; j<D; ++j)
+    {
+      Type_t sum = lhs(i,0) * rhs(0,j);
+      #pragma unroll
+      for (int k=1; k<D; ++k) 
+        sum += lhs(i,k) * rhs(k,j);
+      tmp(i,j) = sum;
+    }
+  return tmp;
+}
+
+// scalar * Tensor
+template<class T, class T1, unsigned D>
+inline Tensor<T,D> operator*(const T1& lhs, const Tensor<T,D>& rhs)
+{
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in Tensor!");
+  Tensor<T,D> tmp;
+  for(int i=0; i<D*D; ++i)
+    tmp[i]=lhs*rhs[i];
+  return tmp;
+}
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -394,64 +423,25 @@ inline T1 trace(const Tensor<T1,D>& a, const Tensor<T2,D>& b)
 
 /** Tr(a^t *b), \f$ \sum_i\sum_j a(i,j)*b(i,j) \f$
  */
-template <class T, unsigned D>
-inline T traceAtB(const Tensor<T,D>& a, const Tensor<T,D>& b)
+template <class T, class T1, unsigned D>
+inline T traceAtB(const Tensor<T,D>& a, const Tensor<T1,D>& b)
 {
-  T result = 0.0;
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in Tensor!");
+  T result(0);
   for (int i = 0 ; i < D*D ; i++ )
     result += a(i)*b(i);
   return result;
 }
-
-/** Tr(a^t *b), \f$ \sum_i\sum_j a(i,j)*b(i,j) \f$
- */
-template <class T1, class T2, unsigned D>
-inline typename BinaryReturn<T1,T2,OpMultiply>::Type_t traceAtB(const Tensor<T1,D>& a, const Tensor<T2,D>& b)
-{
-  typedef typename BinaryReturn<T1,T2,OpMultiply>::Type_t T;
-  T result = 0.0;
-  for (int i = 0 ; i < D*D ; i++ )
-    result += a(i)*b(i);
-  return result;
-}
-
-//////////////////////////////////////////////////////////////////////
-//
-// Unary Operators
-//
-//////////////////////////////////////////////////////////////////////
-//----------------------------------------------------------------------
-// unary operator-
-//template<class T, unsigned D>
-//inline Tensor<T,D> operator-(const Tensor<T,D> &op)
-//{
-//  return MetaUnary< Tensor<T,D> , OpUnaryMinus > :: apply(op,OpUnaryMinus());
-//}
-//----------------------------------------------------------------------
-// unary operator+
-//template<class T, unsigned D>
-//inline const Tensor<T,D> &operator+(const Tensor<T,D> &op)
-//{
-//  return op;
-//}
-
-/// Binary Operators
-OHMMS_META_BINARY_OPERATORS(Tensor,operator+,OpAdd)
-OHMMS_META_BINARY_OPERATORS(Tensor,operator-,OpSubtract)
-OHMMS_META_BINARY_OPERATORS(Tensor,operator*,OpMultiply)
-OHMMS_META_BINARY_OPERATORS(Tensor,operator/,OpDivide)
-//TSV_ELEMENTWISE_OPERATOR(Tensor,Min,FnMin)
-//TSV_ELEMENTWISE_OPERATOR(Tensor,Max,FnMax)
 
 /** Tensor-Tensor dot product \f$result(i,j)=\sum_k lhs(i,k)*rhs(k,j)\f$
  * @param lhs  a tensor
  * @param rhs  a tensor
  */
-template < class T1, class T2, unsigned D >
-inline Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t, D>
-dot(const Tensor<T1,D> &lhs, const Tensor<T2,D> &rhs)
+template < class T, class T1, unsigned D >
+inline Tensor< typename Promote<T,T1>::Type_t, D >
+dot(const Tensor<T,D> &lhs, const Tensor<T1,D> &rhs)
 {
-  return OTDot< Tensor<T1,D> , Tensor<T2,D> > :: apply(lhs,rhs);
+  return lhs*rhs;
 }
 
 /** Vector-Tensor dot product \f$result(i)=\sum_k lhs(k)*rhs(k,i)\f$
@@ -557,30 +547,6 @@ std::istream& operator>>(std::istream& is, Tensor<T,D>& rhs)
   for(int i=0; i<D*D; i++)
     is >> rhs[i];
   return is;
-}
-
-}
-// include header files for SymTensor and AntiSymTensor in order
-// to define constructors for Tensor using these types
-#include "OhmmsPETE/SymTensor.h"
-#include "OhmmsPETE/AntiSymTensor.h"
-
-namespace qmcplusplus
-{
-template <class T, unsigned D>
-Tensor<T,D>::Tensor(const SymTensor<T,D>& rhs)
-{
-  for (int i=0; i<D; ++i)
-    for (int j=0; j<D; ++j)
-      (*this)(i,j) = rhs(i,j);
-}
-
-template <class T, unsigned D>
-Tensor<T,D>::Tensor(const AntiSymTensor<T,D>& rhs)
-{
-  for (int i=0; i<D; ++i)
-    for (int j=0; j<D; ++j)
-      (*this)(i,j) = rhs(i,j);
 }
 
 }

@@ -62,7 +62,7 @@ struct TinyVector
   {
     static_assert(D1==D, "Dimession mismatching in TinyVector");
     static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in TinyVector!");
-    *this=rhs;
+    std::copy_n(rhs.begin(),D,X);
   }
 
   // Constructor from a single T
@@ -285,7 +285,7 @@ struct TinyVector
 
 // scalar * TinyVector
 template<class T, class T1, unsigned D>
-inline TinyVector<T,D> operator*(const T& lhs, const TinyVector<T1,D>& rhs)
+inline TinyVector<T,D> operator*(const T1& lhs, const TinyVector<T,D>& rhs)
 {
   static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in TinyVector!");
   TinyVector<T,D> tmp;
