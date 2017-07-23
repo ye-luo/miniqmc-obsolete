@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <iostream>
 #include "PETE/PETE.h"
-#include "OhmmsPETE/OhmmsTinyMeta.h"
+#include "OhmmsPETE/TinyVector.h"
 /***************************************************************************
  *
  * The POOMA Framework
@@ -351,7 +351,8 @@ private:
 
 // Tensor * Tensor
 template<class T, class T1, unsigned D>
-inline Tensor<typename Promote<T,T1>::Type_t,D> operator*(const Tensor<T,D>& lhs, const Tensor<T1,D>& rhs)
+inline Tensor<typename Promote<T,T1>::Type_t,D>
+operator*(const Tensor<T,D>& lhs, const Tensor<T1,D>& rhs)
 {
   static_assert(std::is_convertible<T1,T>::value, "Inconvertible types in Tensor!");
   using Type_t=typename Promote<T,T1>::Type_t;
@@ -409,11 +410,102 @@ inline Tensor<T,D> transpose(const Tensor<T,D>& rhs)
   return result;
 }
 
+//////////////////////////////////////////////////////
+//
+// determinant: generalized
+//
+//////////////////////////////////////////////////////
+template <class T, unsigned D>
+inline typename Tensor<T,D>::Type_t det(const Tensor<T,D>& a)
+{
+  // to implement the general case here
+  return  0;
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=1
+//////////////////////////////////////////////////////
+template <class T>
+inline typename Tensor<T,1>::Type_t det(const Tensor<T,1>& a)
+{
+  return  a(0,0);
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=2
+//////////////////////////////////////////////////////
+template <class T>
+inline typename Tensor<T,2>::Type_t det(const Tensor<T,2>& a)
+{
+  return  a(0,0)*a(1,1)-a(0,1)*a(1,0);
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=3
+//////////////////////////////////////////////////////
+template <class T>
+inline typename Tensor<T,3>::Type_t det(const Tensor<T,3>& a)
+{
+  return  a(0,0)*(a(1,1)*a(2,2)-a(1,2)*a(2,1))
+          +a(0,1)*(a(1,2)*a(2,0)-a(1,0)*a(2,2))
+          +a(0,2)*(a(1,0)*a(2,1)-a(1,1)*a(2,0));
+}
+
+//////////////////////////////////////////////////////
+//
+// inverse: generalized
+// A*B = I, * being the matrix multiplication  I(i,j) = sum_k A(i,k)*B(k,j)
+//
+//////////////////////////////////////////////////////
+template <class T, unsigned D>
+inline Tensor<T,D> inverse(const Tensor<T,D>& a)
+{
+  return Tensor<T,D>();
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=1
+//////////////////////////////////////////////////////
+template <class T>
+inline Tensor<T,1> inverse(const Tensor<T,1>& a)
+{
+  return Tensor<T,1>(1.0/a(0,0));
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=2
+//////////////////////////////////////////////////////
+template <class T>
+inline Tensor<T,2> inverse(const Tensor<T,2>& a)
+{
+  T vinv=1/det(a);
+  return Tensor<T,2>(vinv*a(1,1), -vinv*a(0,1), -vinv*a(1,0), vinv*a(0,0));
+}
+
+//////////////////////////////////////////////////////
+// specialized for D=3
+//////////////////////////////////////////////////////
+template <class T>
+inline Tensor<T,3> inverse(const Tensor<T,3>& a)
+{
+  T vinv=1/det(a);
+  return Tensor<T,3>(vinv*(a(1,1)*a(2,2)-a(1,2)*a(2,1)),
+                     vinv*(a(2,1)*a(0,2)-a(2,2)*a(0,1)),
+                     vinv*(a(0,1)*a(1,2)-a(0,2)*a(1,1)),
+                     vinv*(a(1,2)*a(2,0)-a(1,0)*a(2,2)),
+                     vinv*(a(2,2)*a(0,0)-a(2,0)*a(0,2)),
+                     vinv*(a(0,2)*a(1,0)-a(0,0)*a(1,2)),
+                     vinv*(a(1,0)*a(2,1)-a(1,1)*a(2,0)),
+                     vinv*(a(2,0)*a(0,1)-a(2,1)*a(0,0)),
+                     vinv*(a(0,0)*a(1,1)-a(0,1)*a(1,0)));
+}
+
 /** Tr(a*b), \f$ \sum_i\sum_j a(i,j)*b(j,i) \f$
  */
 template <class T1, class T2, unsigned D>
 inline T1 trace(const Tensor<T1,D>& a, const Tensor<T2,D>& b)
 {
+  static_assert(std::is_convertible<T1,T2>::value, "Inconvertible types in Tensor!");
   T1 result = 0.0;
   for (int i = 0 ; i < D ; i++ )
     for(int j=0; j<D; j++)
@@ -423,11 +515,11 @@ inline T1 trace(const Tensor<T1,D>& a, const Tensor<T2,D>& b)
 
 /** Tr(a^t *b), \f$ \sum_i\sum_j a(i,j)*b(i,j) \f$
  */
-template <class T, class T1, unsigned D>
-inline T traceAtB(const Tensor<T,D>& a, const Tensor<T1,D>& b)
+template <class T1, class T2, unsigned D>
+inline T1 traceAtB(const Tensor<T1,D>& a, const Tensor<T2,D>& b)
 {
-  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in Tensor!");
-  T result(0);
+  static_assert(std::is_convertible<T1,T2>::value, "Inconvertible types in Tensor!");
+  T1 result(0);
   for (int i = 0 ; i < D*D ; i++ )
     result += a(i)*b(i);
   return result;
@@ -437,9 +529,9 @@ inline T traceAtB(const Tensor<T,D>& a, const Tensor<T1,D>& b)
  * @param lhs  a tensor
  * @param rhs  a tensor
  */
-template < class T, class T1, unsigned D >
-inline Tensor< typename Promote<T,T1>::Type_t, D >
-dot(const Tensor<T,D> &lhs, const Tensor<T1,D> &rhs)
+template < class T1, class T2, unsigned D >
+inline Tensor< typename Promote<T1,T2>::Type_t, D >
+dot(const Tensor<T1,D> &lhs, const Tensor<T2,D> &rhs)
 {
   return lhs*rhs;
 }
@@ -449,10 +541,20 @@ dot(const Tensor<T,D> &lhs, const Tensor<T1,D> &rhs)
  * @param rhs  a tensor
  */
 template < class T1, class T2, unsigned D >
-inline TinyVector<typename BinaryReturn<T1,T2,OpMultiply>::Type_t, D>
+inline TinyVector< typename Promote<T1,T2>::Type_t, D >
 dot(const TinyVector<T1,D> &lhs, const Tensor<T2,D> &rhs)
 {
-  return OTDot< TinyVector<T1,D> , Tensor<T2,D> > :: apply(lhs,rhs);
+  static_assert(std::is_convertible<T1,T2>::value, "Inconvertible types in Tensor!");
+  using Type_t=typename Promote<T1,T2>::Type_t;
+  TinyVector<Type_t,D> tmp;
+  for (int i=0; i<D; ++i)
+  {
+    Type_t sum = lhs[0]*rhs(0,i);
+    for (int j=1; j<D; ++j)
+      sum += lhs[j]*rhs(j,i);
+    tmp[i] = sum;
+  }
+  return tmp;
 }
 
 /** Tensor-Vector dot product \f$result(i)=\sum_k lhs(i,k)*rhs(k)\f$
@@ -460,10 +562,21 @@ dot(const TinyVector<T1,D> &lhs, const Tensor<T2,D> &rhs)
  * @param rhs  a vector
  */
 template < class T1, class T2, unsigned D >
-inline TinyVector<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>
+inline TinyVector< typename Promote<T1,T2>::Type_t, D >
 dot(const Tensor<T1,D> &lhs, const TinyVector<T2,D> &rhs)
 {
-  return OTDot< Tensor<T1,D> , TinyVector<T2,D> > :: apply(lhs,rhs);
+  static_assert(std::is_convertible<T1,T2>::value, "Inconvertible types in Tensor!");
+  using Type_t=typename Promote<T1,T2>::Type_t;
+  TinyVector<Type_t,D> tmp;
+  for (int i=0; i<D; ++i)
+  {
+    Type_t sum = lhs(i,0)*rhs[0];
+    #pragma unroll
+    for (int j=1; j<D; ++j)
+      sum += lhs(i,j)*rhs[j];
+    tmp[i] = sum;
+  }
+  return tmp;
 }
 
 //----------------------------------------------------------------------
