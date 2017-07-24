@@ -20,6 +20,7 @@
 #include <iostream>
 #include "PETE/PETE.h"
 #include "OhmmsPETE/TinyVector.h"
+
 /***************************************************************************
  *
  * The POOMA Framework
@@ -577,6 +578,20 @@ dot(const Tensor<T1,D> &lhs, const TinyVector<T2,D> &rhs)
     tmp[i] = sum;
   }
   return tmp;
+}
+
+//----------------------------------------------------------------------
+// outerProduct product of TinyVector
+//----------------------------------------------------------------------
+
+template < class T, class T1>
+inline Tensor<T,3>
+outerProduct(const TinyVector<T,3> &a, const TinyVector<T1,3> &b)
+{
+  static_assert(std::is_convertible<T,T1>::value, "Inconvertible types in TinyVector!");
+  return Tensor<T,3>(a[0]*b[0],a[0]*b[1],a[0]*b[2],
+                     a[1]*b[0],a[1]*b[1],a[1]*b[2],
+                     a[2]*b[0],a[2]*b[1],a[2]*b[2]);
 }
 
 //----------------------------------------------------------------------

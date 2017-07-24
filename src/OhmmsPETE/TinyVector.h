@@ -40,6 +40,7 @@
 
 namespace qmcplusplus
 {
+
 /** Fixed-size array. candidate for array<T,D>
  */
 template<class T, unsigned D>
@@ -323,19 +324,6 @@ inline TinyVector<T,3> cross(const TinyVector<T,3>& a, const TinyVector<T1,3>& b
   cross[2] = a[0]*b[1] - a[1]*b[0];
   return cross;
 }
-
-//----------------------------------------------------------------------
-// outerProduct product
-//----------------------------------------------------------------------
-
-/* TODO
-template < class T1, class T2, unsigned D >
-inline Tensor<typename BinaryReturn<T1,T2,OpMultiply>::Type_t,D>
-outerProduct(const TinyVector<T1,D> &lhs, const TinyVector<T2,D> &rhs)
-{
-  return OuterProduct< TinyVector<T1,D> , TinyVector<T2,D> > :: apply(lhs,rhs);
-}
-*/
 
 //----------------------------------------------------------------------
 // I/O
